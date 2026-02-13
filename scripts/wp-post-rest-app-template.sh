@@ -12,6 +12,8 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/secrets.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/rest-featured-media.sh"
 
 validate_post_status() {
   case "$1" in
@@ -38,6 +40,15 @@ DETAILS="$4"
 IMAGE_URL="${5:-}"
 STATUS="${6:-draft}"
 validate_post_status "$STATUS"
+FEATURED_MEDIA_ID=""
+FEATURED_URL_FALLBACK=false
+
+if [ -n "$IMAGE_URL" ]; then
+  FEATURED_MEDIA_ID="$(upload_featured_media_from_url "$IMAGE_URL" || true)"
+  if [ -z "$FEATURED_MEDIA_ID" ]; then
+    FEATURED_URL_FALLBACK=true
+  fi
+fi
 
 TITLE="$APP_NAME : $DESCRIPTION"
 if [ -n "$IMAGE_URL" ]; then
@@ -49,6 +60,9 @@ fi
 TITLE_ESCAPED="$(json_escape "$TITLE")"
 CONTENT_ESCAPED="$(json_escape "$FORMATTED_CONTENT")"
 JSON_PAYLOAD="{\"title\":{\"raw\":\"$TITLE_ESCAPED\"},\"content\":{\"raw\":\"$CONTENT_ESCAPED\"},\"status\":\"$STATUS\"}"
+if [ -n "$FEATURED_MEDIA_ID" ]; then
+  JSON_PAYLOAD="{\"title\":{\"raw\":\"$TITLE_ESCAPED\"},\"content\":{\"raw\":\"$CONTENT_ESCAPED\"},\"status\":\"$STATUS\",\"featured_media\":$FEATURED_MEDIA_ID}"
+fi
 
 RESPONSE=$(curl -sS -X POST \
   -H "User-Agent: WP-CLI-OLD" \
@@ -59,6 +73,13 @@ RESPONSE=$(curl -sS -X POST \
 
 if echo "$RESPONSE" | grep -q '"id"'; then
   POST_ID=$(echo "$RESPONSE" | grep -o '"id":[0-9]*' | head -n1 | cut -d':' -f2)
+  if [ "$FEATURED_URL_FALLBACK" = true ]; then
+    if set_featured_image_url_via_xmlrpc "$POST_ID" "$IMAGE_URL"; then
+      echo "Featured fallback set via XML-RPC URL meta"
+    else
+      echo "Featured fallback failed (XML-RPC URL meta)"
+    fi
+  fi
   echo "Post created"
   echo "ID: $POST_ID"
   echo "Status: $STATUS"

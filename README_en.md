@@ -2,43 +2,125 @@
 
 [🇬🇧 EN](README_en.md) · [🇫🇷 FR](README.md)
 
-WordPress scripts are centralized in `scripts/`, using a single shared credentials file: `secrets/wp-credentials`.
+WordPress scripts are centralized in `scripts/` with one shared credentials file in `secrets/`.
 
-## ✅ Features
-- All active scripts are in `scripts/`.
-- One credentials source for REST and XML-RPC.
-- Multiple workflows: title/content, app templates, file mode, interactive mode, XML-RPC mode.
+## Structure
+- Scripts: `scripts/`
+- Credentials: `secrets/wp-credentials`
+- Article file example: `scripts/article_data.example.txt`
 
-## 🧠 Scripts
-### REST
-- `scripts/wp-post-rest-title-content.sh`
-- `scripts/wp-post-rest-title-content-legacy.sh`
-- `scripts/wp-post-rest-app-template.sh`
-- `scripts/wp-post-rest-app-template-with-excerpt.sh`
-- `scripts/wp-post-rest-app-from-file.sh`
-- `scripts/wp-post-rest-interactive-manager.sh`
-- `scripts/secrets.sh`
+## Credentials
+Expected file: `secrets/wp-credentials`
 
-### XML-RPC
-- `scripts/wp-post-xmlrpc-draft-upload-image.sh`
-- `scripts/wp-post-xmlrpc-draft-featured-url.sh`
-- `scripts/wp-post-xmlrpc-test-validate-image-url.sh`
+3-line format:
+1. `https://your-site.tld`
+2. `your-username`
+3. `your-application-password`
 
-## ⚙️ Credentials (single file)
-File: `secrets/wp-credentials`
+## Script-by-script behavior
+`scripts/secrets.sh`
+- Purpose: loads credentials for REST scripts.
+- Source: `../secrets/wp-credentials` (or `WP_CLI_OLD_CONFIG_FILE`).
+- Exports: `WP_SITE_URL`, `WP_USERNAME`, `WP_APP_PASSWORD`.
 
-Format (3 lines):
-1. Site URL
-2. Username
-3. Application password
+`scripts/wp-post-rest-title-content.sh`
+- Method: REST API (`/wp-json/wp/v2/posts`).
+- Input: `title`, `content`, optional `status`.
+- Default status: `draft`.
+- Usage:
+```bash
+./scripts/wp-post-rest-title-content.sh "Title" "Content" draft
+```
 
-## 🧾 Quick draft test
+`scripts/wp-post-rest-app-template.sh`
+- Method: REST API.
+- Input: `app_name`, `description`, `url`, `details`, optional `image_url`, optional `status`.
+- Default status: `draft`.
+- Builds HTML content in app-card style.
+- If `image_url` is provided:
+1. it first tries REST media upload to set `featured_media`,
+2. if REST upload is blocked (for example HTTP 403), it falls back to XML-RPC featured URL meta.
+- Usage:
+```bash
+./scripts/wp-post-rest-app-template.sh "App Name" "short desc" "https://app.tld" "details" "" draft
+```
+
+`scripts/wp-post-rest-app-template-with-excerpt.sh`
+- Method: REST API.
+- Input: `app_name`, `description`, `url`, `image_url`, `details`, optional `status`.
+- Default status: `draft`.
+- Also sets `excerpt` and `jetpack_publicize_message` meta.
+- If `image_url` is provided: same featured logic as above (REST media first, XML-RPC fallback on failure).
+- Usage:
+```bash
+./scripts/wp-post-rest-app-template-with-excerpt.sh "App Name" "desc" "https://app.tld" "https://img.tld/a.jpg" "<ul><li>point</li></ul>" draft
+```
+
+`scripts/wp-post-rest-app-from-file.sh`
+- Method: REST API.
+- Input: text file (default: `scripts/article_data.txt`).
+- File format:
+1. APP_NAME
+2. SHORT_DESCRIPTION
+3. URL
+4. IMAGE_URL
+5. DETAILS_HTML_OR_TEXT
+6. STATUS (optional, empty = `draft`)
+- Usage:
+```bash
+./scripts/wp-post-rest-app-from-file.sh scripts/article_data.txt
+```
+- Line 4 (`IMAGE_URL`) triggers the same featured logic (REST media, then XML-RPC fallback).
+
+`scripts/wp-post-rest-interactive-manager.sh`
+- Method: interactive REST API menu.
+- Menu:
+1. Create post
+2. List last 10 posts
+3. Publish draft by ID
+4. Exit
+- Warning: this script can publish live if you choose menu option `3`.
+- Usage:
+```bash
+./scripts/wp-post-rest-interactive-manager.sh
+```
+
+`scripts/wp-post-xmlrpc-draft-featured-plugin-url.sh`
+- Method: XML-RPC (`wp.newPost` then `wp.editPost`).
+- Creates post as `draft`.
+- If `-i` is a URL, sets featured image URL meta (plugin "Featured Image by URL").
+- Main options: `-t/--title`, `-c/--content`, `-i/--image`, `--categories`, `-e/--excerpt`, `-u/--slug`, `--dry-run`.
+- Usage:
+```bash
+./scripts/wp-post-xmlrpc-draft-featured-plugin-url.sh -t "Title" -c "Content" -i "https://img.tld/a.jpg"
+```
+
+`scripts/wp-post-xmlrpc-draft-featured-native-upload.sh`
+- Method: XML-RPC (`wp.newPost` + media upload + featured image association).
+- Creates post as `draft`.
+- If `-i` is a URL, downloads the image, uploads it to WordPress, then sets it as featured image.
+- Main options: `-t/--title`, `-c/--content`, `-i/--image`, `--categories`, `-e/--excerpt`, `-u/--slug`, `--dry-run`.
+- Usage:
+```bash
+./scripts/wp-post-xmlrpc-draft-featured-native-upload.sh -t "Title" -c "Content" -i "https://img.tld/a.jpg"
+```
+
+`scripts/wp-post-xmlrpc-test-validate-image-url.sh`
+- Purpose: local validation test for image URL checking function.
+- Does not create WordPress posts.
+- Usage:
+```bash
+./scripts/wp-post-xmlrpc-test-validate-image-url.sh
+```
+
+## Draft vs publish summary
+- Non-interactive REST scripts: default to draft, publish only if `publish` is explicitly passed.
+- Interactive REST manager: can publish via menu option `3`.
+- XML-RPC scripts above: create drafts (with optional `--dry-run` simulation mode).
+
+## Quick safe test
 ```bash
 cd /Users/clm/Documents/GitHub/PROJECTS/CLI_WPpostdraft
 chmod +x scripts/*.sh
-./scripts/wp-post-rest-title-content.sh "Draft test $(date +%F-%T)" "Test content" draft
+./scripts/wp-post-rest-title-content.sh "Draft test $(date +%F-%T)" "README test" draft
 ```
-
-## 🔗 Links
-- FR README: `README.md`
-- Script details: `scripts/README.md`

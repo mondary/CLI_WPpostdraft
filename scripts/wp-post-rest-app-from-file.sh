@@ -14,6 +14,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/secrets.sh"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/rest-featured-media.sh"
 
 validate_post_status() {
   case "$1" in
@@ -47,12 +49,20 @@ IMAGE=$(sed -n '4p' "$DATA_FILE")
 DETAILS=$(sed -n '5p' "$DATA_FILE")
 STATUS_RAW=$(sed -n '6p' "$DATA_FILE")
 STATUS="${STATUS_RAW:-draft}"
+FEATURED_MEDIA_ID=""
+FEATURED_URL_FALLBACK=false
 
 if [ -z "$APP_NAME" ] || [ -z "$DESCRIPTION" ] || [ -z "$URL" ] || [ -z "$DETAILS" ]; then
   echo "Data file is incomplete. Required lines: 1,2,3,5"
   exit 1
 fi
 validate_post_status "$STATUS"
+if [ -n "$IMAGE" ]; then
+  FEATURED_MEDIA_ID="$(upload_featured_media_from_url "$IMAGE" || true)"
+  if [ -z "$FEATURED_MEDIA_ID" ]; then
+    FEATURED_URL_FALLBACK=true
+  fi
+fi
 
 TITLE="$APP_NAME : $DESCRIPTION"
 CONTENT="<p>$URL</p><p>📌 $APP_NAME est une application $DESCRIPTION.</p><p><img src=\"$IMAGE\" alt=\"$APP_NAME\" style=\"max-width: 100%; height: auto;\"/></p><p><strong>Avantages principaux :</strong></p>$DETAILS"
@@ -60,6 +70,9 @@ CONTENT="<p>$URL</p><p>📌 $APP_NAME est une application $DESCRIPTION.</p><p><i
 TITLE_ESCAPED="$(json_escape "$TITLE")"
 CONTENT_ESCAPED="$(json_escape "$CONTENT")"
 JSON_PAYLOAD="{\"title\":{\"raw\":\"$TITLE_ESCAPED\"},\"content\":{\"raw\":\"$CONTENT_ESCAPED\"},\"status\":\"$STATUS\"}"
+if [ -n "$FEATURED_MEDIA_ID" ]; then
+  JSON_PAYLOAD="{\"title\":{\"raw\":\"$TITLE_ESCAPED\"},\"content\":{\"raw\":\"$CONTENT_ESCAPED\"},\"status\":\"$STATUS\",\"featured_media\":$FEATURED_MEDIA_ID}"
+fi
 
 RESPONSE=$(curl -sS -X POST \
   -H "User-Agent: WP-CLI-OLD" \
@@ -70,6 +83,13 @@ RESPONSE=$(curl -sS -X POST \
 
 if echo "$RESPONSE" | grep -q '"id"'; then
   POST_ID=$(echo "$RESPONSE" | grep -o '"id":[0-9]*' | head -n1 | cut -d':' -f2)
+  if [ "$FEATURED_URL_FALLBACK" = true ]; then
+    if set_featured_image_url_via_xmlrpc "$POST_ID" "$IMAGE"; then
+      echo "Featured fallback set via XML-RPC URL meta"
+    else
+      echo "Featured fallback failed (XML-RPC URL meta)"
+    fi
+  fi
   echo "Post created"
   echo "ID: $POST_ID"
   echo "Status: $STATUS"
