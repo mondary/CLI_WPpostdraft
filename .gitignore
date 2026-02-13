@@ -1,0 +1,22 @@
+# macOS
+.DS_Store
+
+# Editors / local workspace
+.vscode/
+.idea/
+
+# Secrets / credentials
+secrets/wp-credentials
+secrets/wp-credentials.local
+
+# Local test inputs
+scripts/article_data.txt
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+tmp/
+temp/

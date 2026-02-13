@@ -1,0 +1,6 @@
+APP_NAME
+Description courte
+https://service.example.com
+https://service.example.com/image.jpg
+<p>Avantage 1</p><p>Avantage 2</p>
+draft
