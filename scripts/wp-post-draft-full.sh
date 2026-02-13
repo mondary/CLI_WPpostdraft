@@ -124,6 +124,38 @@ fi
 # ============================================================================
 # Fonction d'upload d'image vers la médiathèque WordPress
 # ============================================================================
+normalize_image_to_16_9() {
+  local image_path="$1"
+  local width height scale new_w new_h
+
+  if ! command -v sips >/dev/null 2>&1; then
+    echo "Erreur: sips est requis pour forcer le format featured 16:9" >&2
+    return 1
+  fi
+
+  width="$(sips -g pixelWidth "$image_path" 2>/dev/null | awk '/pixelWidth:/{print $2}' | tail -n1)"
+  height="$(sips -g pixelHeight "$image_path" 2>/dev/null | awk '/pixelHeight:/{print $2}' | tail -n1)"
+
+  if [ -z "$width" ] || [ -z "$height" ]; then
+    echo "Erreur: impossible de lire les dimensions de l'image" >&2
+    return 1
+  fi
+
+  # Assure une base suffisante pour recadrer proprement en 1600x900
+  if [ "$width" -lt 1600 ] || [ "$height" -lt 900 ]; then
+    scale="$(awk -v w="$width" -v h="$height" 'BEGIN{
+      s1=1600.0/w; s2=900.0/h; print (s1>s2?s1:s2)
+    }')"
+    new_w="$(awk -v w="$width" -v s="$scale" 'BEGIN{printf "%d", (w*s)+0.5}')"
+    new_h="$(awk -v h="$height" -v s="$scale" 'BEGIN{printf "%d", (h*s)+0.5}')"
+    sips -z "$new_h" "$new_w" "$image_path" >/dev/null 2>&1 || return 1
+  fi
+
+  # Recadrage systématique en paysage 16:9
+  sips --cropToHeightWidth 900 1600 "$image_path" >/dev/null 2>&1 || return 1
+  return 0
+}
+
 upload_featured_media_from_url() {
   local image_url="$1"
   if [ -z "$image_url" ]; then
@@ -152,6 +184,12 @@ upload_featured_media_from_url() {
 
   if ! curl -fLsS "$image_url" -o "$tmp_file"; then
     echo "Échec du téléchargement: $image_url" >&2
+    rm -f "$tmp_file"
+    return 1
+  fi
+
+  if ! normalize_image_to_16_9 "$tmp_file"; then
+    echo "Erreur: impossible de convertir l'image en featured paysage 16:9" >&2
     rm -f "$tmp_file"
     return 1
   fi
