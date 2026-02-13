@@ -106,12 +106,128 @@ Format (3 lignes):
 ```
 
 `scripts/wp-post-xmlrpc-test-validate-image-url.sh`
-- Rôle: script de test local d’une fonction de validation d’URL image.
+- Rôle: script de test local d'une fonction de validation d'URL image.
 - Ne crée pas de post WordPress.
 - Usage:
 ```bash
 ./scripts/wp-post-xmlrpc-test-validate-image-url.sh
 ```
+
+`scripts/wp-post-draft-featured.sh`
+- Méthode: REST API.
+- Rôle: créer un brouillon simple avec une featured image.
+- Entrée: `titre`, `contenu`, `url_image`.
+- Statut: toujours `draft`.
+- Usage:
+```bash
+./scripts/wp-post-draft-featured.sh "Mon Titre" "Mon contenu texte" "https://example.com/image.jpg"
+```
+
+`scripts/wp-post-draft-featured-markdown.sh`
+- Méthode: REST API.
+- Rôle: créer un brouillon avec featured image et contenu **Markdown**.
+- Entrée: `titre`, `contenu_markdown` ou `-f fichier.md`, `url_image`.
+- Statut: toujours `draft`.
+- Markdown supporté:
+  | Syntaxe | Résultat |
+  |---------|----------|
+  | `# Titre` | Titre h1 |
+  | `## Titre` | Titre h2 (jusqu'à h6) |
+  | `**gras**` | Texte en gras |
+  | `*italique*` | Texte en italique |
+  | `` `code` `` | Code inline |
+  | ` ```code``` ` | Bloc de code |
+  | `- item` | Liste à puces |
+  | `[texte](url)` | Lien cliquable |
+  | `![alt](url)` | Image |
+  | URL YouTube | Embed vidéo |
+- Usage (contenu direct):
+```bash
+./scripts/wp-post-draft-featured-markdown.sh "Mon Titre" "## Introduction
+
+Voici un texte **important** avec du \`code\`.
+
+- Point 1
+- Point 2
+
+[Lien](https://example.com)" "https://example.com/image.jpg"
+```
+- Usage (depuis fichier):
+```bash
+./scripts/wp-post-draft-featured-markdown.sh "Mon Titre" -f article.md "https://example.com/image.jpg"
+```
+
+`scripts/wp-post-draft-full.sh`
+- Méthode: REST API.
+- Rôle: script **complet et autonome** pour créer des brouillons WordPress.
+- **Script autonome**: ne dépend d'aucun autre script (credentials intégrés).
+- **Par défaut**: trouve le **prochain jour sans article** et suggère cette date.
+- **Toujours en brouillon** (jamais planifié automatiquement).
+- Fonctionnalités:
+  - Featured image
+  - Contenu Markdown (titres, gras, italique, code, listes, liens, images, YouTube)
+  - Slug personnalisé (optionnel, auto-généré si vide)
+  - Excerpt (extrait)
+  - Jetpack Social (message max 300 car. + image attachée)
+  - Catégories (par nom, recherche partielle)
+  - **Date intelligente** (trouve le prochain jour libre)
+- Options:
+  | Option | Description |
+  |--------|-------------|
+  | `-t, --title` | Titre du post (requis) |
+  | `-c, --content` | Contenu Markdown (requis) |
+  | `-i, --image` | URL image featured (requis) |
+  | `-f, --file` | Lire contenu depuis fichier .md |
+  | `-s, --slug` | Slug personnalisé |
+  | `-e, --excerpt` | Extrait du post |
+  | `-j, --social` | Message Jetpack Social (max 300 car.) |
+  | `-C, --categories` | Catégories (noms séparés par virgule) |
+  | `--list-categories` | Lister les catégories disponibles |
+  | `--draft` | Brouillon simple (sans date suggérée) |
+  | `-d, --date` | Date spécifique (YYYY-MM-DD) |
+  | `--hour` | Heure suggérée (défaut: 09:00) |
+- Usage:
+```bash
+# Lister les catégories disponibles
+./scripts/wp-post-draft-full.sh --list-categories
+
+# Brouillon avec date au prochain jour libre (DÉFAUT)
+./scripts/wp-post-draft-full.sh \
+  -t "Mon Article" \
+  -c "## Intro\n\nTexte **important**" \
+  -i "https://example.com/image.jpg" \
+  -e "Résumé de l'article" \
+  -j "Découvrez mon nouvel article! #hashtag" \
+  -C "NoCode,Tools"
+
+# Brouillon simple sans date
+./scripts/wp-post-draft-full.sh \
+  -t "Mon Article" \
+  -c "Contenu" \
+  -i "https://example.com/image.jpg" \
+  --draft
+
+# Brouillon avec date spécifique
+./scripts/wp-post-draft-full.sh \
+  -t "Mon Article" \
+  -c "Contenu" \
+  -i "https://example.com/image.jpg" \
+  -d "2026-03-15" \
+  --hour "14:30"
+
+# Avec contenu depuis fichier
+./scripts/wp-post-draft-full.sh \
+  -t "Mon Article" \
+  -f article.md \
+  -i "https://example.com/image.jpg" \
+  -C "Article"
+```
+
+`scripts/rest-featured-media.sh`
+- Rôle: module partagé pour l'upload d'images dans la médiathèque WordPress.
+- Fonction principale: `upload_featured_media_from_url()` - télécharge une image depuis une URL et l'upload via REST API.
+- Fonction fallback: `set_featured_image_url_via_xmlrpc()` - définit l'image featured via XML-RPC (plugin meta).
+- Ce script est sourcé par les autres scripts, il ne s'utilise pas directement.
 
 ## Résumé draft vs publish
 - Scripts REST non interactifs: draft par défaut, publication directe possible uniquement si tu passes `publish` explicitement.

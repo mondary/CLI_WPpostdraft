@@ -6,6 +6,9 @@
 .idea/
 .claude/
 
+# Legacy archives
+legacy/
+
 # Secrets / credentials
 secrets/wp-credentials
 secrets/wp-credentials.local
