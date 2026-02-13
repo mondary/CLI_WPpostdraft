@@ -113,6 +113,50 @@ Expected file: `secrets/wp-credentials`
 ./scripts/wp-post-xmlrpc-test-validate-image-url.sh
 ```
 
+`scripts/wp-post-draft-featured.sh`
+- Method: REST API.
+- Purpose: create a simple draft with a native featured image.
+- Input: `title`, `content`, `image_url`.
+- Status: always `draft`.
+- Usage:
+```bash
+./scripts/wp-post-draft-featured.sh "My Title" "My post content" "https://example.com/image.jpg"
+```
+
+`scripts/wp-post-draft-featured-markdown.sh`
+- Method: REST API.
+- Purpose: create a draft with native featured image and Markdown-to-HTML content conversion.
+- Input: `title`, `markdown_content` OR `-f file.md`, `image_url`.
+- Status: always `draft`.
+- Supports headings, bold/italic, inline code/code blocks, lists, links, images, and YouTube embeds.
+- Usage (inline content):
+```bash
+./scripts/wp-post-draft-featured-markdown.sh "My Title" "## Intro\n\n**Important** text" "https://example.com/image.jpg"
+```
+- Usage (from file):
+```bash
+./scripts/wp-post-draft-featured-markdown.sh "My Title" -f article.md "https://example.com/image.jpg"
+```
+
+`scripts/wp-post-draft-full.sh`
+- Method: REST API.
+- Purpose: full all-in-one draft workflow (featured image, Markdown, slug, excerpt, Jetpack message, categories, suggested date).
+- Status: always `draft`.
+- Date behavior:
+1. default: finds next free day and sets a suggested date/time while keeping status `draft`,
+2. `--draft`: creates a plain draft without suggested date.
+- Key options: `-t`, `-c` or `-f`, `-i`, `-s`, `-e`, `-j`, `-C`, `--list-categories`, `--draft`, `-d`, `--hour`.
+- Usage:
+```bash
+./scripts/wp-post-draft-full.sh -t "My Post" -c "## Intro" -i "https://example.com/image.jpg" -C "NoCode,Tools"
+```
+
+`scripts/rest-featured-media.sh`
+- Purpose: shared helper sourced by other scripts.
+- Main function: `upload_featured_media_from_url()` uploads an image URL to WP media and returns media ID.
+- Fallback function: `set_featured_image_url_via_xmlrpc()` writes featured URL meta via XML-RPC.
+- Not intended to be run directly.
+
 ## Draft vs publish summary
 - Non-interactive REST scripts: default to draft, publish only if `publish` is explicitly passed.
 - Interactive REST manager: can publish via menu option `3`.

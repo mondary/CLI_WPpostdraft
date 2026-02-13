@@ -32,7 +32,7 @@ Options facultatives:
 Options de date:
   --draft                       Créer un brouillon simple (sans date)
   -d, --date "YYYY-MM-DD"       Définir une date spécifique
-  --hour "HH:MM"                Heure de publication (défaut: 09:00)
+  --hour "HH:MM"                Heure de publication (défaut: 14:00)
   (par défaut)                  Trouve le prochain jour sans article
 
 Markdown supporté:
@@ -69,7 +69,7 @@ CATEGORIES=""
 LIST_CATEGORIES=false
 DRAFT_MODE=false
 SCHEDULE_DATE=""
-SCHEDULE_HOUR="09:00"
+SCHEDULE_HOUR="14:00"
 
 # Parse des arguments
 while [[ $# -gt 0 ]]; do
@@ -193,6 +193,10 @@ upload_featured_media_from_url() {
 # Fonctions utilitaires
 # ============================================================================
 
+# Vérifier si jq est disponible (parsing JSON robuste)
+HAS_JQ=false
+command -v jq >/dev/null 2>&1 && HAS_JQ=true
+
 # Fonction pour lister les catégories
 list_categories() {
   echo "Catégories disponibles:"
@@ -202,14 +206,19 @@ list_categories() {
     -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
     "$WP_SITE_URL/wp-json/wp/v2/categories?per_page=100")
 
-  # Parser avec des regex plus précises
-  echo "$response" | grep -oE '\{"id":[0-9]+,"count":[0-9]+,"description":"[^"]*","link":"[^"]*","name":"[^"]+"' | \
-    while read -r line; do
-      local id name
-      id=$(echo "$line" | grep -oE '"id":[0-9]+' | cut -d':' -f2)
-      name=$(echo "$line" | grep -oE '"name":"[^"]+"' | sed 's/"name":"//;s/"$//')
-      printf "  %-35s (ID: %s)\n" "$name" "$id"
-    done
+  if [ "$HAS_JQ" = true ]; then
+    # Parsing robuste avec jq
+    echo "$response" | jq -r '.[] | "  \(.name) (ID: \(.id))"' 2>/dev/null || echo "Erreur parsing JSON" >&2
+  else
+    # Fallback grep/sed (moins robuste avec emojis/caractères spéciaux)
+    echo "$response" | grep -oE '\{"id":[0-9]+,"count":[0-9]+,"description":"[^"]*","link":"[^"]*","name":"[^"]+"' | \
+      while read -r line; do
+        local id name
+        id=$(echo "$line" | grep -oE '"id":[0-9]+' | cut -d':' -f2)
+        name=$(echo "$line" | grep -oE '"name":"[^"]+"' | sed 's/"name":"//;s/"$//')
+        printf "  %-35s (ID: %s)\n" "$name" "$id"
+      done
+  fi
 }
 
 # Fonction pour trouver le prochain jour sans article
@@ -273,10 +282,18 @@ get_category_ids() {
   IFS=',' read -ra CATS <<< "$cat_names"
   for cat_name in "${CATS[@]}"; do
     cat_name=$(echo "$cat_name" | xargs) # trim whitespace
-    # Chercher l'ID de la catégorie (recherche partielle, insensible à la casse)
-    # Cela permet de trouver "🔯 NoCode" en cherchant "NoCode"
-    cat_id=$(echo "$all_cats" | grep -oE '\{"id":[0-9]+,"count":[0-9]+,"description":"[^"]*","link":"[^"]*","name":"[^"]+"' | \
-      grep -i "$cat_name" | head -1 | grep -oE '"id":[0-9]+' | cut -d':' -f2)
+    local cat_id=""
+
+    if [ "$HAS_JQ" = true ]; then
+      # Parsing robuste avec jq (recherche partielle insensible à la casse)
+      cat_id=$(echo "$all_cats" | jq -r --arg name "$cat_name" \
+        '.[] | select(.name | test($name; "i")) | .id' 2>/dev/null | head -1)
+    else
+      # Fallback grep/sed (moins robuste)
+      cat_id=$(echo "$all_cats" | grep -oE '\{"id":[0-9]+,"count":[0-9]+,"description":"[^"]*","link":"[^"]*","name":"[^"]+"' | \
+        grep -i "$cat_name" | head -1 | grep -oE '"id":[0-9]+' | cut -d':' -f2)
+    fi
+
     if [ -n "$cat_id" ]; then
       if [ -n "$cat_ids" ]; then
         cat_ids="$cat_ids,$cat_id"
@@ -525,12 +542,21 @@ fi
 # Toujours réutiliser la featured image pour Jetpack Social (attached_media)
 if [ -n "$FEATURED_MEDIA_ID" ]; then
   # Récupérer l'URL de l'image pour Jetpack Social
-  MEDIA_URL=$(curl -sS \
+  MEDIA_RESPONSE=$(curl -sS \
     -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
     -u "$WP_USERNAME:$WP_APP_PASSWORD" \
-    "$WP_SITE_URL/wp-json/wp/v2/media/$FEATURED_MEDIA_ID" | grep -oE '"source_url":"[^"]+"' | head -1 | cut -d'"' -f4)
+    "$WP_SITE_URL/wp-json/wp/v2/media/$FEATURED_MEDIA_ID")
 
-  JETPACK_OPTIONS="{\"image_generator_settings\":{\"template\":\"highway\",\"enabled\":false},\"attached_media\":[{\"id\":$FEATURED_MEDIA_ID,\"url\":\"$MEDIA_URL\",\"type\":\"image\"}],\"version\":2}"
+  if [ "$HAS_JQ" = true ]; then
+    MEDIA_URL=$(echo "$MEDIA_RESPONSE" | jq -r '.source_url // empty' 2>/dev/null)
+  else
+    MEDIA_URL=$(echo "$MEDIA_RESPONSE" | grep -oE '"source_url":"[^"]+"' | head -1 | cut -d'"' -f4)
+  fi
+
+  # Échapper l'URL pour JSON
+  MEDIA_URL_ESCAPED="$(json_escape "$MEDIA_URL")"
+
+  JETPACK_OPTIONS="{\"image_generator_settings\":{\"template\":\"highway\",\"enabled\":false},\"attached_media\":[{\"id\":$FEATURED_MEDIA_ID,\"url\":\"$MEDIA_URL_ESCAPED\",\"type\":\"image\"}],\"version\":2}"
 
   if [ -n "$META_FIELDS" ]; then
     META_FIELDS="$META_FIELDS,\"jetpack_social_post_already_shared\":false,\"jetpack_publicize_feature_enabled\":true,\"jetpack_social_options\":$JETPACK_OPTIONS"
