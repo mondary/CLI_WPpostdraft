@@ -1042,7 +1042,14 @@ handle_featured_image() {
             
             # Uploader l'image téléchargée vers WordPress
             local attachment_id
-            if attachment_id=$(upload_media "$temp_image_path" | tail -n1); then
+            local upload_output
+            if upload_output=$(upload_media "$temp_image_path"); then
+                attachment_id=$(echo "$upload_output" | tr -d '\r' | grep -Eo '[0-9]+' | tail -n1)
+                if [[ -z "$attachment_id" ]]; then
+                    rm -f "$temp_image_path"
+                    echo "✗ Échec: ID d'attachment non détecté après upload" >&2
+                    return 1
+                fi
                 # Nettoyer le fichier temporaire
                 rm -f "$temp_image_path"
                 
@@ -1066,7 +1073,13 @@ handle_featured_image() {
     else
         # Fichier local - utiliser l'upload traditionnel
         local attachment_id
-        if attachment_id=$(upload_media "$image_path" | tail -n1); then
+        local upload_output
+        if upload_output=$(upload_media "$image_path"); then
+            attachment_id=$(echo "$upload_output" | tr -d '\r' | grep -Eo '[0-9]+' | tail -n1)
+            if [[ -z "$attachment_id" ]]; then
+                echo "✗ Échec: ID d'attachment non détecté après upload" >&2
+                return 1
+            fi
             echo "$attachment_id"
             return 0
         fi
@@ -1169,7 +1182,13 @@ download_image_from_url() {
     
     # Créer un fichier temporaire sécurisé pour stocker l'image
     local temp_image
-    temp_image=$(mktemp "${TMPDIR:-/tmp}/wpimg.XXXXXX")
+    local url_ext
+    url_ext=$(echo "$image_url" | sed 's/.*\.//' | sed 's/[?#].*//' | tr '[:upper:]' '[:lower:]')
+    case "$url_ext" in
+        jpg|jpeg|png|gif|webp|bmp) ;;
+        *) url_ext="jpg" ;;
+    esac
+    temp_image=$(mktemp "${TMPDIR:-/tmp}/wpimg.XXXXXX.${url_ext}")
     if [[ $? -ne 0 || -z "$temp_image" ]]; then
         echo "Erreur: Impossible de créer un fichier temporaire sécurisé" >&2
         return 1
