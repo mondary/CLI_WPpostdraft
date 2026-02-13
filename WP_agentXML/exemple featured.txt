@@ -1,0 +1,1 @@
+echo -e "Test Image Clément\ntest-clement\nTest de l'image\nhttps://assets.about.me/background/users/c/l/e/clementmondary_1589975113_184.jpg\nTest avec l'image de Clément.\nEND" | ./wp_post_draft.sh --auto

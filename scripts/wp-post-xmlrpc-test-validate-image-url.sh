@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 
 # Test script for the enhanced validate_image_url function
 # Extract just the function we need to test

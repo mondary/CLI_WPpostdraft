@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 set -euo pipefail
 
 # Create an app-style post through REST API with excerpt and social message metadata.

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 set -euo pipefail
 
 # Create a WordPress post through REST API from explicit title/content arguments.

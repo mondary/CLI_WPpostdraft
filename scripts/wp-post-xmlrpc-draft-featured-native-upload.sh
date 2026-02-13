@@ -1,22 +1,7 @@
 #!/bin/bash
-
-# WordPress Draft Publisher
-# Version: 1.0.0
-# Description: Script bash pour créer des brouillons WordPress via XML-RPC
-# Auteur: Kiro AI Assistant
-# Licence: MIT
-# 
-# Ce script permet de créer des brouillons WordPress en ligne de commande
-# avec support du formatage automatique, upload d'images, et gestion des catégories.
+# Author: cmondary - https://github.com/mondary
 #
-# Dépendances requises:
-# - curl (pour les requêtes HTTP/XML-RPC)
-# - base64 (pour l'encodage des images)
-#
-# Utilisation:
-# ./wp-draft.sh -t "Titre" -c "Contenu" [autres options]
-#
-# Voir --help pour la documentation complète
+# WordPress XML-RPC draft publisher (native featured image via upload)
 
 # Variables globales pour stocker les paramètres de ligne de commande
 TITLE=""
@@ -277,7 +262,7 @@ show_help() {
     cat << EOF
 WordPress Draft Publisher - Créer des brouillons WordPress via XML-RPC
 
-USAGE: ./wp-draft.sh [OPTIONS]
+USAGE: ./$(basename "$0") [OPTIONS]
 
 OPTIONS:
     -t, --title "titre"           Titre de l'article (requis)
@@ -294,25 +279,25 @@ OPTIONS:
 
 EXEMPLES:
     # Brouillon simple
-    ./wp-draft.sh -t "Mon article"
+    ./$(basename "$0") -t "Mon article"
     
     # Article avec contenu
-    ./wp-draft.sh -t "Guide" -c "Contenu de l'article"
+    ./$(basename "$0") -t "Guide" -c "Contenu de l'article"
     
     # Article complet
-    ./wp-draft.sh -t "Tutorial" -c "## Introduction\nContenu..." -e "Résumé" -u "tutorial-slug" --categories "tech,guide"
+    ./$(basename "$0") -t "Tutorial" -c "## Introduction\nContenu..." -e "Résumé" -u "tutorial-slug" --categories "tech,guide"
     
     # Avec image
-    ./wp-draft.sh -t "Review" -c "Contenu..." -i "image.jpg" --categories "review"
+    ./$(basename "$0") -t "Review" -c "Contenu..." -i "image.jpg" --categories "review"
     
     # Test sans créer
-    ./wp-draft.sh -t "Test" -c "Contenu" --dry-run
+    ./$(basename "$0") -t "Test" -c "Contenu" --dry-run
     
     # Mode verbeux
-    ./wp-draft.sh -t "Debug" --verbose
+    ./$(basename "$0") -t "Debug" --verbose
     
     # Lister catégories
-    ./wp-draft.sh --list-categories
+    ./$(basename "$0") --list-categories
 
 FORMATAGE AUTOMATIQUE:
     - URLs → liens cliquables

@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 set -euo pipefail
 
 # Crée un brouillon WordPress avec une featured image
@@ -46,6 +47,7 @@ CONTENT_ESCAPED="$(json_escape "$CONTENT")"
 JSON_PAYLOAD="{\"title\":\"$TITLE_ESCAPED\",\"content\":\"$CONTENT_ESCAPED\",\"status\":\"draft\",\"featured_media\":$FEATURED_MEDIA_ID}"
 
 RESPONSE=$(curl -sS -X POST \
+  -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
   -u "$WP_USERNAME:$WP_APP_PASSWORD" \
   -H "Content-Type: application/json" \
   -d "$JSON_PAYLOAD" \

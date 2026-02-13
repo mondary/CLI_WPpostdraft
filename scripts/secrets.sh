@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 set -euo pipefail
 
 # Load WordPress secrets from a single credentials file.

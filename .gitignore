@@ -4,6 +4,7 @@
 # Editors / local workspace
 .vscode/
 .idea/
+.claude/
 
 # Secrets / credentials
 secrets/wp-credentials

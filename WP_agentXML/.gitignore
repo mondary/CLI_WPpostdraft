@@ -1,0 +1,79 @@
+# WordPress XML-RPC Draft Poster - .gitignore
+
+# Configuration files containing credentials
+*.conf
+mondary.conf
+mysite.conf
+wordpress.conf
+wp.conf
+
+# Backup configuration files
+*.conf.bak
+*.conf.backup
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+temp_*
+test_image.png
+test_*.png
+test_*.jpg
+test_*.jpeg
+test_*.gif
+test_*.webp
+
+# Log files
+*.log
+debug.log
+error.log
+
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Archive test files (keep only in local testing)
+wp_post_draft_test_*.sh
+
+# WordPress uploads test files
+upload_test_*
+media_test_*
+
+# Personal notes and drafts
+notes.txt
+draft.txt
+TODO.txt
+personal_*
+
+# Credentials and keys
+*_key
+*_secret
+api_key*
+password*
+credentials*
+
+# Test output files
+test_output.txt
+response.xml
+debug_output.txt

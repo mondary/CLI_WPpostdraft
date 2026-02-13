@@ -1,0 +1,15 @@
+./wp_post_draft.sh --auto \
+  --title "Guide complet : Automatiser vos publications WordPress" \
+  --slug "-" \
+  --excerpt "Script shell pour créer et publier automatiquement des articles WordPress via XML-RPC" \
+  --feat "https://assets.about.me/background/users/c/l/e/clementmondary_1589975113_184.jpg" \
+  --content "https://mondary.design/
+📌 Le script wp_post_draft.sh est un outil développé pour automatiser la création d'articles WordPress directement depuis le terminal
+
+## Fonctionnalités principales
+
+* 🚀 **Création automatisée :** Créez des articles WordPress directement depuis le terminal
+* 📝 **Support Markdown :** Formatage riche avec headers, listes, liens et code  
+* 🖼️ **Images mises en avant :** Support des images locales et distantes
+* ⚙️ **Configuration flexible :** Fichiers de config sécurisés ou variables d'environnement
+* 🔧 **Mode interactif :** Interface guidée pour les débutants"

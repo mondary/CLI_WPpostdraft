@@ -1,4 +1,5 @@
 #!/bin/bash
+# Author: cmondary - https://github.com/mondary
 set -euo pipefail
 
 # Upload an image URL to WordPress media library and return media ID.
@@ -54,11 +55,9 @@ upload_featured_media_from_url() {
   fi
 
   response=$(curl -sS -X POST \
-    -H "User-Agent: WP-CLI-OLD" \
+    -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
     -u "$WP_USERNAME:$WP_APP_PASSWORD" \
-    -H "Content-Disposition: attachment; filename=\"$filename\"" \
-    -H "Content-Type: $mime_type" \
-    --data-binary @"$tmp_file" \
+    -F "file=@$tmp_file;filename=$filename;type=$mime_type" \
     "$base_url/wp-json/wp/v2/media")
 
   rm -f "$tmp_file"
